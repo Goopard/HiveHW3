@@ -1,0 +1,17 @@
+DROP VIEW mvp_device;
+DROP VIEW mvp_os;
+DROP VIEW mvp_browser;
+
+CREATE VIEW IF NOT EXISTS mvp_device AS
+SELECT id, collect_list(device)[0] AS mvp FROM device_agg GROUP BY id;
+
+CREATE VIEW IF NOT EXISTS mvp_os AS
+SELECT id, collect_list(os)[0] AS mvp FROM os_agg GROUP BY id;
+
+CREATE VIEW IF NOT EXISTS mvp_browser AS
+SELECT id, collect_list(browser)[0] AS mvp FROM browser_agg GROUP BY id;
+
+SELECT COALESCE(cities.name, mvp_device.id) AS city_name, mvp_device.mvp, mvp_os.mvp, mvp_browser.mvp FROM mvp_device
+JOIN mvp_os ON mvp_device.id = mvp_os.id
+JOIN mvp_browser ON mvp_device.id = mvp_browser.id
+LEFT OUTER JOIN cities ON cities.id = mvp_device.id;

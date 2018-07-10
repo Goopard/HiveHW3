@@ -1,0 +1,90 @@
+CREATE EXTERNAL TABLE IF NOT EXISTS contest (
+  bidid string,
+  time_stamp string,
+  logtype string,
+  ipinyouid string,
+  user_agent string,
+  ip string,
+  regionid string,
+  cityid string,
+  adexcehnge string,
+  domain string,
+  url string,
+  a_url string,
+  adslotid string,
+  adslotwidth string,
+  adslotheight string,
+  adslotvis string,
+  adslotformat string,
+  adslotfloorprice string,
+  creid string,
+  price string,
+  pprice string,
+  landpageurl string,
+  advertiserid string,
+  userprofileid string)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+LINES TERMINATED BY '\n'
+LOCATION '/user/raj_ops/contest/';
+
+CREATE EXTERNAL TABLE IF NOT EXISTS cities (
+  id int,
+  name string)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+LINES TERMINATED BY '\n'
+LOCATION '/user/raj_ops/cities/';
+
+CREATE TABLE IF NOT EXISTS ua_items (
+  id int,
+  device string,
+  os string,
+  browser string)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+LINES TERMINATED BY '\n';
+
+ADD FILE /usr/jobs/test.py;
+
+INSERT OVERWRITE TABLE ua_items
+SELECT TRANSFORM(cityid, user_agent) USING 'python3 /usr/jobs/test.py' AS id, device, os, browser FROM contest;
+
+CREATE TABLE IF NOT EXISTS device_agg (
+  id int,
+  device string,
+  total int)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+LINES TERMINATED BY '\n';
+
+INSERT OVERWRITE TABLE device_agg
+SELECT id, device, count(*) as total FROM ua_items
+GROUP BY id, device
+DISTRIBUTE BY id, total SORT BY id, total DESC;
+
+CREATE TABLE IF NOT EXISTS os_agg (
+  id int,
+  os string,
+  total int)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+LINES TERMINATED BY '\n';
+
+INSERT OVERWRITE TABLE os_agg
+SELECT id, os, count(*) as total FROM ua_items
+GROUP BY id, os
+DISTRIBUTE BY id, total SORT BY id, total DESC;
+
+CREATE TABLE IF NOT EXISTS browser_agg (
+  id int,
+  browser string,
+  total int)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+LINES TERMINATED BY '\n';
+
+INSERT OVERWRITE TABLE browser_agg
+SELECT id, browser, count(*) as total FROM ua_items
+GROUP BY id, browser
+DISTRIBUTE BY id, total SORT BY id, total DESC;
